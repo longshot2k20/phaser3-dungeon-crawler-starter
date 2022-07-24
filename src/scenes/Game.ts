@@ -13,28 +13,36 @@ import Faune from '../characters/Faune'
 import { sceneEvents } from '../events/EventsCenter'
 import Chest from '../items/Chest'
 
-export default class Game extends Phaser.Scene
-{
+export default class Game extends Phaser.Scene {
 	private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
 	private faune!: Faune
 
+	private punch!: Phaser.Physics.Arcade.Image
 	private knives!: Phaser.Physics.Arcade.Group
 	private lizards!: Phaser.Physics.Arcade.Group
 
 	private playerLizardsCollider?: Phaser.Physics.Arcade.Collider
 
-	constructor()
-	{
+	constructor() {
 		super('game')
 	}
 
-	preload()
-    {
+	preload() {
 		this.cursors = this.input.keyboard.createCursorKeys()
-    }
 
-    create()
-    {
+		this.load.aseprite({
+			key: 'chars',
+			textureURL: '../../character/aseprite/char1.png',
+			atlasURL: '../../character/aseprite/char1.json'
+		});
+		this.load.aseprite({
+			key: 'chars_hurt',
+			textureURL: '../../character/aseprite/char1_hurt.png',
+			atlasURL: '../../character/aseprite/char1_hurt.json'
+		});
+	}
+
+	create() {
 		this.scene.run('game-ui')
 
 		createCharacterAnims(this.anims)
@@ -53,6 +61,10 @@ export default class Game extends Phaser.Scene
 
 		this.faune = this.add.faune(128, 128, 'faune')
 		this.faune.setKnives(this.knives)
+
+		//this.punch = this.physics.add.staticImage(this.faune.x, this.faune.y, 'knife')
+		this.punch = this.physics.add.image(this.faune.x, this.faune.y, 'knife')
+		this.faune.setPunch(this.punch)
 
 		const wallsLayer = map.createStaticLayer('Walls', tileset)
 
@@ -89,30 +101,40 @@ export default class Game extends Phaser.Scene
 		this.physics.add.collider(this.knives, wallsLayer, this.handleKnifeWallCollision, undefined, this)
 		this.physics.add.collider(this.knives, this.lizards, this.handleKnifeLizardCollision, undefined, this)
 
+		this.physics.add.collider(this.punch, wallsLayer, this.handlePunchWallCollision, undefined, this)
+		this.physics.add.collider(this.punch, this.lizards, this.handlePunchLizardCollision, undefined, this)
+
 		this.playerLizardsCollider = this.physics.add.collider(this.lizards, this.faune, this.handlePlayerLizardCollision, undefined, this)
 	}
 
-	private handlePlayerChestCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject)
-	{
+	private handlePlayerChestCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject) {
 		const chest = obj2 as Chest
 		this.faune.setChest(chest)
 	}
 
-	private handleKnifeWallCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject)
-	{
+	private handleKnifeWallCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject) {
 		this.knives.killAndHide(obj1)
 	}
 
-	private handleKnifeLizardCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject)
-	{
+	private handleKnifeLizardCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject) {
 		this.knives.killAndHide(obj1)
 		this.lizards.killAndHide(obj2)
 	}
 
-	private handlePlayerLizardCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject)
-	{
+	private handlePunchCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject) {
+		//this.punch.(obj1)
+	}
+
+	private handlePunchLizardCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject) {
+		//this.punch.killAndHide(obj1)
+		//this.lizards.killAndHide(obj2)
+		obj2.destroy();
+
+	}
+
+	private handlePlayerLizardCollision(obj1: Phaser.GameObjects.GameObject, obj2: Phaser.GameObjects.GameObject) {
 		const lizard = obj2 as Lizard
-		
+
 		const dx = this.faune.x - lizard.x
 		const dy = this.faune.y - lizard.y
 
@@ -122,16 +144,13 @@ export default class Game extends Phaser.Scene
 
 		sceneEvents.emit('player-health-changed', this.faune.health)
 
-		if (this.faune.health <= 0)
-		{
+		if (this.faune.health <= 0) {
 			this.playerLizardsCollider?.destroy()
 		}
 	}
-	
-	update(t: number, dt: number)
-	{
-		if (this.faune)
-		{
+
+	update(t: number, dt: number) {
+		if (this.faune) {
 			this.faune.update(this.cursors)
 		}
 	}

@@ -1,6 +1,9 @@
 import Phaser from 'phaser'
 
 const createCharacterAnims = (anims: Phaser.Animations.AnimationManager) => {
+	anims.createFromAseprite('chars');
+	anims.createFromAseprite('chars_hurt');
+
 	anims.create({
 		key: 'faune-idle-down',
 		frames: [{ key: 'faune', frame: 'walk-down-3.png' }]
